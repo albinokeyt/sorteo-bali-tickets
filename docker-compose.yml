@@ -83,8 +83,11 @@ services:
     volumes:
       - ./assets:/app/assets:ro          # plantilla del ticket
       - ticketcache:/app/cache           # imágenes de ticket cacheadas
-    ports:
-      - "${API_PORT:-3000}:3000"
+    # Sin "ports" (publicar al host) para no chocar con otros servicios en
+    # EasyPanel. El dominio se mapea al servicio "api" en el puerto 3000 desde
+    # la pestaña Domains; EasyPanel conecta por la red interna.
+    expose:
+      - "3000"
 
   worker:
     image: ticket-system
