@@ -42,6 +42,12 @@ const worker = new Worker<SendTicketsJob>(
     const subject = buildSubject(settings, vars);
     const html = buildHtml(settings, vars, baseUrl);
 
+    // Modo simulación: marca enviado sin llamar a Brevo (pruebas de carga).
+    if (config.brevo.dryRun) {
+      await markPurchaseEmail(purchaseId, "sent");
+      return { dryRun: true };
+    }
+
     try {
       const messageId = await sendEmail({
         to: { email, name },
@@ -80,5 +86,6 @@ worker.on("error", (err) => {
 });
 
 console.log(
-  `[worker] escuchando cola "${QUEUE_NAME}" · ${config.brevo.ratePerSec} emails/seg · ${config.brevo.maxAttempts} intentos`
+  `[worker] escuchando cola "${QUEUE_NAME}" · ${config.brevo.ratePerSec} emails/seg · ${config.brevo.maxAttempts} intentos` +
+    (config.brevo.dryRun ? " · ⚠️ MODO SIMULACIÓN (no envía de verdad)" : "")
 );

@@ -5,6 +5,7 @@ import { useToast } from "../components/Toast";
 import EmailSettings from "../components/EmailSettings";
 import WebhookInfo from "../components/WebhookInfo";
 import Purchases from "../components/Purchases";
+import QueueStatus from "../components/QueueStatus";
 import Modal from "../components/Modal";
 
 type Stats = { tickets: string; purchases: string; sent: string; pending: string; failed: string };
@@ -114,6 +115,9 @@ export default function AdminDashboard() {
           <button className="btn danger sm" onClick={reset}>Resetear sorteo</button>
         </div>
       </div>
+
+      {/* Estado de la cola de envíos */}
+      <QueueStatus />
 
       {/* Crear tickets */}
       <div className="card" style={{ marginTop: 20 }}>

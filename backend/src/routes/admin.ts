@@ -5,7 +5,7 @@ import { pool } from "../db";
 import { config } from "../config";
 import { checkPassword, issueToken, verifyToken } from "../lib/auth";
 import { createPurchaseWithTickets } from "../lib/tickets";
-import { enqueueSend } from "../queue";
+import { enqueueSend, sendQueue } from "../queue";
 import { clearImageCache } from "../lib/ticketImage";
 import { getEmailSettings, saveEmailSettings, type EmailSettings } from "../lib/settings";
 import { buildHtml, buildSubject, type RenderVars } from "../lib/emailTemplate";
@@ -99,6 +99,42 @@ export async function adminRoutes(app: FastifyInstance) {
       params
     );
     return { tickets: rows };
+  });
+
+  // --- Estado de la cola de envíos (barra de progreso + pendientes) ---
+  app.get("/api/admin/queue", async () => {
+    const counts = await sendQueue.getJobCounts(
+      "waiting",
+      "active",
+      "completed",
+      "failed",
+      "delayed"
+    );
+    const { rows: agg } = await pool.query<{ email_status: string; n: string }>(
+      "SELECT email_status, count(*) AS n FROM purchases GROUP BY email_status"
+    );
+    const by: Record<string, number> = {};
+    for (const r of agg) by[r.email_status] = Number(r.n);
+    const sent = by.sent ?? 0;
+    const pending = by.pending ?? 0;
+    const failed = by.failed ?? 0;
+    const total = sent + pending + failed;
+
+    // Detalle de compras cuyo email aún no salió (pendientes o fallidas)
+    const { rows: notSent } = await pool.query(
+      `SELECT id, external_order_id, name, email, quantity, email_status, created_at
+         FROM purchases
+        WHERE email_status IN ('pending','failed')
+        ORDER BY created_at DESC
+        LIMIT 500`
+    );
+
+    return {
+      purchases: { total, sent, pending, failed },
+      queue: counts, // { waiting, active, completed, failed, delayed }
+      dryRun: config.brevo.dryRun,
+      notSent,
+    };
   });
 
   // --- Compras con sus tickets (vista desglosada por compra) ---

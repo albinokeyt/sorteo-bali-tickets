@@ -36,6 +36,7 @@ export const api = {
     req("/api/admin/login", { method: "POST", body: JSON.stringify({ password }) }),
   webhookInfo: () => req("/api/admin/webhook-info", {}, true),
   stats: () => req("/api/admin/stats", {}, true),
+  queueStatus: () => req("/api/admin/queue", {}, true),
   listTickets: (q = "", limit = 100, offset = 0) =>
     req(`/api/admin/tickets?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`, {}, true),
   listPurchases: (q = "", limit = 100, offset = 0) =>

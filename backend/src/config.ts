@@ -32,6 +32,9 @@ export const config = {
     subject: env("EMAIL_SUBJECT", "🎟️ Tus tickets del sorteo"),
     ratePerSec: num("EMAIL_RATE_PER_SEC", 10),
     maxAttempts: num("EMAIL_MAX_ATTEMPTS", 4),
+    // Modo simulación: procesa la cola SIN enviar de verdad por Brevo.
+    // Útil para pruebas de carga sin gastar envíos ni dañar la reputación.
+    dryRun: (process.env.EMAIL_DRY_RUN ?? "").toLowerCase() === "true",
   },
 
   webhook: {
