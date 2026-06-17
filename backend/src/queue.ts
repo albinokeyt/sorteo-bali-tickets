@@ -35,10 +35,11 @@ export const sendQueue = new Queue<SendTicketsJob>(QUEUE_NAME, {
 });
 
 export async function enqueueSend(purchaseId: string) {
-  // jobId = purchaseId hace que reintentos/duplicados no creen 2 trabajos.
+  // jobId estable (sin ":" — BullMQ no lo permite) para que reintentos
+  // o duplicados no creen 2 trabajos para la misma compra.
   await sendQueue.add(
     "send",
     { purchaseId },
-    { jobId: `send:${purchaseId}` }
+    { jobId: `send-${purchaseId}` }
   );
 }
