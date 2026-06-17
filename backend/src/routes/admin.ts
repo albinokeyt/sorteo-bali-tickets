@@ -163,7 +163,12 @@ export async function adminRoutes(app: FastifyInstance) {
         LIMIT ${q ? "$2" : "$1"} OFFSET ${q ? "$3" : "$2"}`,
       params
     );
-    return { purchases: rows };
+    // Total de compras (para la paginación)
+    const countRes = await pool.query<{ n: string }>(
+      `SELECT count(*) AS n FROM purchases p ${where}`,
+      q ? [`%${q}%`] : []
+    );
+    return { purchases: rows, total: Number(countRes.rows[0].n) };
   });
 
   // --- Editar el email de una compra (y de sus tickets) ---

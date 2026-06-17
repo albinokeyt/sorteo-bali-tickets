@@ -17,21 +17,32 @@ type Purchase = {
 export default function Purchases() {
   const toast = useToast();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [total, setTotal] = useState(0);
   const [q, setQ] = useState("");
+  const [pageSize, setPageSize] = useState(5);
+  const [page, setPage] = useState(0); // base 0
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   const refresh = useCallback(async () => {
     try {
-      const r = await api.listPurchases(q);
+      const r = await api.listPurchases(q, pageSize, page * pageSize);
       setPurchases(r.purchases);
+      setTotal(r.total ?? r.purchases.length);
     } catch (e: any) {
       toast(e.message, "err");
     }
-  }, [q, toast]);
+  }, [q, pageSize, page, toast]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Al cambiar búsqueda o tamaño de página, vuelve a la primera página
+  useEffect(() => {
+    setPage(0);
+  }, [q, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   async function resend(p: Purchase) {
     try {
@@ -74,11 +85,17 @@ export default function Purchases() {
         <div className="row">
           <input
             className="input"
-            style={{ maxWidth: 240 }}
+            style={{ maxWidth: 220 }}
             placeholder="Buscar email, nombre u order id…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
+          <select className="input" style={{ width: "auto" }} value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
           <button className="btn sm" onClick={() => download(false)}>⬇ Descargar todos</button>
           <button className="btn ghost sm" onClick={() => download(true)}>⬇ Sin anulados</button>
         </div>
@@ -135,6 +152,19 @@ export default function Purchases() {
           <p className="muted" style={{ textAlign: "center", padding: 20 }}>Sin compras todavía</p>
         )}
       </div>
+
+      {/* Paginación */}
+      {total > 0 && (
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
+          <span className="muted" style={{ fontSize: 13 }}>
+            {total} compra(s) · página {page + 1} de {totalPages}
+          </span>
+          <div className="row">
+            <button className="btn ghost sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>← Anterior</button>
+            <button className="btn ghost sm" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>Siguiente →</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
