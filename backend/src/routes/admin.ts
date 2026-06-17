@@ -87,6 +87,90 @@ export async function adminRoutes(app: FastifyInstance) {
     return { tickets: rows };
   });
 
+  // --- Compras con sus tickets (vista desglosada por compra) ---
+  app.get("/api/admin/purchases", async (req) => {
+    const q = String((req.query as any)?.q ?? "").toLowerCase().trim();
+    const limit = Math.min(200, Number((req.query as any)?.limit ?? 100));
+    const offset = Math.max(0, Number((req.query as any)?.offset ?? 0));
+    const where = q
+      ? `WHERE lower(p.email) LIKE $1 OR lower(p.name) LIKE $1 OR lower(p.external_order_id) LIKE $1`
+      : "";
+    const params: any[] = q ? [`%${q}%`, limit, offset] : [limit, offset];
+    const { rows } = await pool.query(
+      `SELECT p.id, p.external_order_id, p.email, p.name, p.quantity,
+              p.email_status, p.created_at,
+              COALESCE(json_agg(json_build_object(
+                'number', t.ticket_sequential_number,
+                'code', t.ticket_number,
+                'annulled', t.is_annulled
+              ) ORDER BY t.ticket_sequential_number)
+                FILTER (WHERE t.id IS NOT NULL), '[]') AS tickets
+         FROM purchases p
+         LEFT JOIN tickets t ON t.purchase_id = p.id AND t.deleted_at IS NULL
+         ${where}
+        GROUP BY p.id
+        ORDER BY p.created_at DESC
+        LIMIT ${q ? "$2" : "$1"} OFFSET ${q ? "$3" : "$2"}`,
+      params
+    );
+    return { purchases: rows };
+  });
+
+  // --- Editar el email de una compra (y de sus tickets) ---
+  app.post("/api/admin/purchase-email", async (req, reply) => {
+    const b = (req.body ?? {}) as any;
+    const purchaseId = String(b.purchaseId ?? "");
+    const email = String(b.email ?? "").toLowerCase().trim();
+    if (!purchaseId || !email.includes("@")) {
+      return reply.code(400).send({ error: "purchaseId y email válidos requeridos" });
+    }
+    await pool.query("UPDATE purchases SET email = $2 WHERE id = $1", [purchaseId, email]);
+    await pool.query("UPDATE tickets SET email = $2 WHERE purchase_id = $1", [purchaseId, email]);
+    if (b.resend) {
+      await pool.query("UPDATE purchases SET email_status='pending' WHERE id=$1", [purchaseId]);
+      await enqueueSend(purchaseId);
+    }
+    return { ok: true };
+  });
+
+  // --- Anular / reactivar un ticket ---
+  app.post("/api/admin/ticket-annul", async (req, reply) => {
+    const b = (req.body ?? {}) as any;
+    const code = String(b.code ?? "");
+    const annulled = b.annulled !== false; // por defecto anula
+    if (!code) return reply.code(400).send({ error: "code requerido" });
+    await pool.query(
+      "UPDATE tickets SET is_annulled = $2 WHERE ticket_number = $1",
+      [code, annulled]
+    );
+    return { ok: true, code, annulled };
+  });
+
+  // --- Exportar TODOS los tickets a CSV ---
+  app.get("/api/admin/export.csv", async (_req, reply) => {
+    const { rows } = await pool.query(
+      `SELECT t.ticket_sequential_number AS num, t.ticket_number AS codigo,
+              t.name AS nombre, t.email, p.external_order_id AS compra,
+              p.email_status AS estado_email, t.is_annulled AS anulado,
+              t.created_at AS creado
+         FROM tickets t JOIN purchases p ON p.id = t.purchase_id
+        WHERE t.deleted_at IS NULL
+        ORDER BY t.ticket_sequential_number`
+    );
+    const esc = (v: any) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = ["num", "codigo", "nombre", "email", "compra", "estado_email", "anulado", "creado"];
+    const lines = [header.join(",")];
+    for (const r of rows) lines.push(header.map((h) => esc((r as any)[h])).join(","));
+    const csv = "﻿" + lines.join("\r\n"); // BOM para Excel
+    return reply
+      .header("Content-Type", "text/csv; charset=utf-8")
+      .header("Content-Disposition", 'attachment; filename="tickets.csv"')
+      .send(csv);
+  });
+
   // --- Crear tickets manualmente (1 compra, N tickets) ---
   app.post("/api/admin/tickets", async (req, reply) => {
     const b = (req.body ?? {}) as any;

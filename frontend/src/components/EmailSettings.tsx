@@ -29,7 +29,7 @@ export default function EmailSettings() {
     api.getEmailSettings().then(setS).catch((e) => toast(e.message, "err"));
   }, [toast]);
 
-  if (!s) return <div className="card" style={{ marginTop: 20 }}>Cargando ajustes del email…</div>;
+  if (!s) return <div>Cargando ajustes del email…</div>;
 
   const set = (k: keyof Settings, v: string) => setS({ ...s, [k]: v });
 
@@ -57,16 +57,13 @@ export default function EmailSettings() {
   }
 
   return (
-    <div className="card" style={{ marginTop: 20 }}>
-      <div className="topbar">
-        <h2 style={{ margin: 0 }}>✉️ Email que se envía</h2>
-        <div className="row">
-          <button className="btn ghost sm" onClick={() => setShowPreview((v) => !v)}>
-            {showPreview ? "Ocultar preview" : "Previsualizar"}
-          </button>
-          <button className="btn ghost sm" onClick={sendTest}>Enviar prueba</button>
-          <button className="btn sm" disabled={saving} onClick={save}>{saving ? "Guardando…" : "Guardar"}</button>
-        </div>
+    <div>
+      <div className="row" style={{ justifyContent: "flex-end", marginBottom: 14 }}>
+        <button className="btn ghost sm" onClick={() => setShowPreview((v) => !v)}>
+          {showPreview ? "Ocultar preview" : "Previsualizar"}
+        </button>
+        <button className="btn ghost sm" onClick={sendTest}>Enviar prueba</button>
+        <button className="btn sm" disabled={saving} onClick={save}>{saving ? "Guardando…" : "Guardar"}</button>
       </div>
 
       <div className="row">

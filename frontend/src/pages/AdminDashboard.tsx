@@ -4,23 +4,19 @@ import { api, clearToken, getToken } from "../lib/api";
 import { useToast } from "../components/Toast";
 import EmailSettings from "../components/EmailSettings";
 import WebhookInfo from "../components/WebhookInfo";
+import Purchases from "../components/Purchases";
+import Modal from "../components/Modal";
 
 type Stats = { tickets: string; purchases: string; sent: string; pending: string; failed: string };
-type Row = {
-  ticket_number: string;
-  ticket_sequential_number: number;
-  email: string;
-  name: string;
-  email_status: string;
-  purchase_id: string;
-};
 
 export default function AdminDashboard() {
   const toast = useToast();
   const nav = useNavigate();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [q, setQ] = useState("");
+
+  // modales
+  const [showWebhook, setShowWebhook] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
 
   // form crear
   const [email, setEmail] = useState("");
@@ -32,22 +28,20 @@ export default function AdminDashboard() {
     if (!getToken()) nav("/admin/login");
   }, [nav]);
 
-  const refresh = useCallback(async () => {
+  const loadStats = useCallback(async () => {
     try {
-      const [s, t] = await Promise.all([api.stats(), api.listTickets(q)]);
-      setStats(s);
-      setRows(t.tickets);
+      setStats(await api.stats());
     } catch (err: any) {
       if (String(err.message).includes("autoriz")) {
         clearToken();
         nav("/admin/login");
       } else toast(err.message, "err");
     }
-  }, [q, nav, toast]);
+  }, [nav, toast]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    loadStats();
+  }, [loadStats]);
 
   async function create() {
     if (!email.includes("@")) return toast("Email inválido", "err");
@@ -58,7 +52,7 @@ export default function AdminDashboard() {
       setEmail("");
       setName("");
       setQuantity(1);
-      refresh();
+      loadStats();
     } catch (err: any) {
       toast(err.message, "err");
     } finally {
@@ -66,21 +60,11 @@ export default function AdminDashboard() {
     }
   }
 
-  async function resend(id: string) {
-    try {
-      await api.resend(id);
-      toast("Email reencolado", "ok");
-      refresh();
-    } catch (err: any) {
-      toast(err.message, "err");
-    }
-  }
-
   async function resendFailed() {
     try {
       const r = await api.resendFailed();
       toast(`Reencolados ${r.requeued} emails`, "ok");
-      refresh();
+      loadStats();
     } catch (err: any) {
       toast(err.message, "err");
     }
@@ -93,7 +77,7 @@ export default function AdminDashboard() {
     try {
       await api.reset(slug);
       toast(`Sorteo "${slug}" reseteado`, "ok");
-      refresh();
+      loadStats();
     } catch (err: any) {
       toast(err.message, "err");
     }
@@ -108,7 +92,11 @@ export default function AdminDashboard() {
     <div className="wrap">
       <div className="topbar">
         <div className="badge">🔐 PANEL ADMIN</div>
-        <button className="btn ghost sm" onClick={logout}>Salir</button>
+        <div className="row">
+          <button className="btn ghost sm" onClick={() => setShowWebhook(true)}>🔗 Webhook</button>
+          <button className="btn ghost sm" onClick={() => setShowEmail(true)}>✉️ Email</button>
+          <button className="btn ghost sm" onClick={logout}>Salir</button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -121,14 +109,11 @@ export default function AdminDashboard() {
           <div className="stat"><div className="n" style={{ color: "var(--err)" }}>{stats?.failed ?? "—"}</div><div className="l">Fallidos</div></div>
         </div>
         <div className="row" style={{ marginTop: 16 }}>
-          <button className="btn ghost sm" onClick={refresh}>↻ Refrescar</button>
+          <button className="btn ghost sm" onClick={loadStats}>↻ Refrescar</button>
           <button className="btn ghost sm" onClick={resendFailed}>Reenviar fallidos/pendientes</button>
           <button className="btn danger sm" onClick={reset}>Resetear sorteo</button>
         </div>
       </div>
-
-      {/* Webhook listo para GHL */}
-      <WebhookInfo />
 
       {/* Crear tickets */}
       <div className="card" style={{ marginTop: 20 }}>
@@ -155,44 +140,16 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Ajustes del email */}
-      <EmailSettings />
+      {/* Compras y tickets (desglose) */}
+      <Purchases />
 
-      {/* Tabla de tickets */}
-      <div className="card" style={{ marginTop: 20 }}>
-        <div className="topbar">
-          <h2 style={{ margin: 0 }}>Tickets</h2>
-          <input
-            className="input"
-            style={{ maxWidth: 280 }}
-            placeholder="Buscar por email o nombre…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </div>
-        <div style={{ overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr><th>#</th><th>Código</th><th>Nombre</th><th>Email</th><th>Email</th><th></th></tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.ticket_number}>
-                  <td><strong>#{r.ticket_sequential_number}</strong></td>
-                  <td style={{ fontFamily: "monospace" }}>{r.ticket_number}</td>
-                  <td>{r.name}</td>
-                  <td>{r.email}</td>
-                  <td><span className={`pill ${r.email_status}`}>{r.email_status}</span></td>
-                  <td><button className="btn ghost sm" onClick={() => resend(r.purchase_id)}>Reenviar</button></td>
-                </tr>
-              ))}
-              {rows.length === 0 && (
-                <tr><td colSpan={6} className="muted" style={{ textAlign: "center", padding: 24 }}>Sin tickets</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Modales */}
+      <Modal open={showWebhook} onClose={() => setShowWebhook(false)} title="🔗 Webhook para GHL">
+        <WebhookInfo />
+      </Modal>
+      <Modal open={showEmail} onClose={() => setShowEmail(false)} title="✉️ Email que se envía" width={820}>
+        <EmailSettings />
+      </Modal>
     </div>
   );
 }

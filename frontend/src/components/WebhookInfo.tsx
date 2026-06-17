@@ -39,9 +39,8 @@ export default function WebhookInfo() {
   };
 
   return (
-    <div className="card" style={{ marginTop: 20 }}>
-      <h2 style={{ marginTop: 0 }}>🔗 Webhook para GHL</h2>
-      <p className="muted" style={{ marginTop: -6 }}>
+    <div>
+      <p className="muted" style={{ marginTop: 0 }}>
         Pega esta URL en la acción <strong>Webhook</strong> de tu workflow de GHL (método POST).
       </p>
 

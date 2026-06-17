@@ -38,6 +38,24 @@ export const api = {
   stats: () => req("/api/admin/stats", {}, true),
   listTickets: (q = "", limit = 100, offset = 0) =>
     req(`/api/admin/tickets?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`, {}, true),
+  listPurchases: (q = "", limit = 100, offset = 0) =>
+    req(`/api/admin/purchases?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`, {}, true),
+  setPurchaseEmail: (purchaseId: string, email: string, resend = false) =>
+    req("/api/admin/purchase-email", { method: "POST", body: JSON.stringify({ purchaseId, email, resend }) }, true),
+  annulTicket: (code: string, annulled: boolean) =>
+    req("/api/admin/ticket-annul", { method: "POST", body: JSON.stringify({ code, annulled }) }, true),
+  async exportCsv() {
+    const t = getToken();
+    const res = await fetch("/api/admin/export.csv", { headers: t ? { authorization: `Bearer ${t}` } : {} });
+    if (!res.ok) throw new Error("No se pudo exportar");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tickets.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  },
   createTickets: (body: { email: string; name?: string; quantity: number; send?: boolean }) =>
     req("/api/admin/tickets", { method: "POST", body: JSON.stringify(body) }, true),
   resend: (purchaseId: string) =>
