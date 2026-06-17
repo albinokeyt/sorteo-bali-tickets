@@ -25,6 +25,7 @@ x-app-env: &app-env
   WHATSAPP_URL: ${WHATSAPP_URL:-https://wa.me/34919930715}
   EMAIL_RATE_PER_SEC: ${EMAIL_RATE_PER_SEC:-10}
   EMAIL_MAX_ATTEMPTS: ${EMAIL_MAX_ATTEMPTS:-4}
+  EMAIL_DRY_RUN: ${EMAIL_DRY_RUN:-false}   # true = modo simulación (no envía de verdad)
   WEBHOOK_SECRET: ${WEBHOOK_SECRET:-cambia-este-secreto}
   ADMIN_PASSWORD: ${ADMIN_PASSWORD:-cambia-esta-clave-admin}
   SESSION_SECRET: ${SESSION_SECRET:-cambia-este-session-secret}
