@@ -8,6 +8,7 @@ import path from "node:path";
 import { config } from "./config";
 import { pool } from "./db";
 import { ensureDefaultSettings } from "./lib/settings";
+import { baseFromRequest, rememberPublicUrl } from "./lib/publicUrl";
 import { webhookRoutes } from "./routes/webhook";
 import { imageRoutes } from "./routes/image";
 import { publicRoutes } from "./routes/public";
@@ -20,6 +21,12 @@ const app = Fastify({
 });
 
 await app.register(fastifyCors, { origin: true });
+
+// Auto-detección del dominio público: aprende de las cabeceras del proxy
+// (EasyPanel) en cada request y lo guarda para que el worker lo use en emails.
+app.addHook("onRequest", async (req) => {
+  void rememberPublicUrl(baseFromRequest(req));
+});
 
 // Salud (para healthchecks / balanceadores)
 app.get("/health", async () => {
@@ -60,9 +67,9 @@ ensureDefaultSettings().catch((err) => app.log.warn({ err }, "no se pudieron sem
 app
   .listen({ host: "0.0.0.0", port })
   .then(() => {
-    app.log.info(`API escuchando en :${port} · PUBLIC_URL=${config.publicUrl}`);
-    app.log.info(`🔗 Webhook GHL: ${config.publicUrl}/webhook/ghl  (token en header X-Webhook-Token o ?token=)`);
-    app.log.info(`🛠️  Panel admin: ${config.publicUrl}/admin  (allí ves el webhook con el token ya incluido)`);
+    const mode = config.publicUrlEnv ? `PUBLIC_URL=${config.publicUrlEnv}` : "dominio AUTO-detectado del proxy";
+    app.log.info(`API escuchando en :${port} · ${mode}`);
+    app.log.info(`🔗 Webhook GHL: <TU-DOMINIO>/webhook/ghl  ·  panel: <TU-DOMINIO>/admin (allí ves la URL exacta con token)`);
   })
   .catch((err) => {
     app.log.error(err);

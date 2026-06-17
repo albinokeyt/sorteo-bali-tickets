@@ -1,0 +1,31 @@
+========================================================
+  SISTEMA DE TICKETS — SORTEO BALI · EMPIEZA AQUÍ
+========================================================
+
+TODO ESTÁ LISTO. No tienes que rellenar nada.
+(Brevo, remitente y claves ya puestos. El dominio se detecta SOLO.)
+
+PASO 1 — Sube esta carpeta a EasyPanel:
+  - EasyPanel > Create Project > + Service > tipo "Compose".
+  - Sube/conecta esta carpeta (lleva docker-compose.yml y el .env).
+  - Deploy.
+
+PASO 2 — Dominio:
+  - Pestaña Domains: añade tu dominio apuntando al servicio "api", puerto 3000.
+  - ¡Listo! La app detecta sola ese dominio y lo usa en los emails.
+    (No hace falta editar nada.)
+
+PASO 3 — Entra al panel:
+  - https://TU-DOMINIO/admin
+  - Usuario: (no hay) · Contraseña: la de ADMIN_PASSWORD del .env
+  - Allí verás el WEBHOOK LISTO PARA COPIAR y pegar en GHL.
+  - Allí también puedes editar el email (HTML, asunto, remitente, etc.).
+
+NOTAS
+- Tu plantilla de ticket está en assets/ticket-template.png (cámbiala si quieres).
+- Para que "compran 1 y luego 35" nunca duplique, añade en el webhook de GHL
+  un Custom Data llamado "purchase_id" con un valor único por compra.
+- Cómo reiniciar/limpiar el sorteo: botón "Resetear sorteo" en /admin.
+
+Más detalle en README.md
+========================================================

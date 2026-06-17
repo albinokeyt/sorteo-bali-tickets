@@ -18,6 +18,8 @@ function num(key: string, fallback: number): number {
 }
 
 export const config = {
+  // Valor crudo de PUBLIC_URL (puede estar vacío → se auto-detecta el dominio).
+  publicUrlEnv: process.env.PUBLIC_URL ?? "",
   publicUrl: env("PUBLIC_URL", "http://localhost:3000").replace(/\/$/, ""),
   port: num("API_PORT", 3000),
   databaseUrl: env("DATABASE_URL", "postgres://tickets:tickets@db:5432/tickets"),

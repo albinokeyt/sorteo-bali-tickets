@@ -16,7 +16,7 @@
 x-app-env: &app-env
   DATABASE_URL: postgres://${POSTGRES_USER:-tickets}:${POSTGRES_PASSWORD:-tickets}@db:5432/${POSTGRES_DB:-tickets}
   REDIS_URL: redis://redis:6379
-  PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+  PUBLIC_URL: ${PUBLIC_URL:-}   # vacío = la app auto-detecta el dominio de EasyPanel
   BREVO_API_KEY: ${BREVO_API_KEY:-MISSING}
   EMAIL_FROM: ${EMAIL_FROM:-tickets@tudominio.com}
   EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Movimiento Real}

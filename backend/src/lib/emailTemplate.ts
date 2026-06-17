@@ -1,6 +1,5 @@
 // Renderiza la plantilla de email (editable) sustituyendo las variables
 // {{...}} por los datos reales de la compra.
-import { config } from "../config";
 import type { EmailSettings } from "./settings";
 
 export type EmailTicket = { number: number; code: string };
@@ -21,8 +20,7 @@ function substitute(tpl: string, vars: Record<string, string>): string {
 }
 
 // Construye el bloque con la imagen de cada ticket (plantilla + datos).
-function ticketsHtml(tickets: EmailTicket[]): string {
-  const base = config.publicUrl;
+function ticketsHtml(tickets: EmailTicket[], base: string): string {
   return tickets
     .map(
       (t) =>
@@ -31,8 +29,7 @@ function ticketsHtml(tickets: EmailTicket[]): string {
     .join("\n");
 }
 
-function buildVars(s: EmailSettings, v: RenderVars): Record<string, string> {
-  const base = config.publicUrl;
+function buildVars(s: EmailSettings, v: RenderVars, base: string): Record<string, string> {
   const first = v.tickets[0];
   return {
     name: v.name,
@@ -45,7 +42,7 @@ function buildVars(s: EmailSettings, v: RenderVars): Record<string, string> {
     link_acceso: v.linkAcceso || `${base}/?email=${encodeURIComponent(v.email)}`,
     whatsapp_url: s.whatsapp_url,
     tickets_url: `${base}/?email=${encodeURIComponent(v.email)}`,
-    tickets_html: ticketsHtml(v.tickets),
+    tickets_html: ticketsHtml(v.tickets, base),
     preheader: substitute(s.preheader, {
       name: v.name,
       count: String(v.tickets.length),
@@ -60,6 +57,6 @@ export function buildSubject(s: EmailSettings, v: RenderVars): string {
   });
 }
 
-export function buildHtml(s: EmailSettings, v: RenderVars): string {
-  return substitute(s.html, buildVars(s, v));
+export function buildHtml(s: EmailSettings, v: RenderVars, base: string): string {
+  return substitute(s.html, buildVars(s, v, base));
 }

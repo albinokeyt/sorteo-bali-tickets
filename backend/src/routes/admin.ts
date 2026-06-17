@@ -10,6 +10,7 @@ import { clearImageCache } from "../lib/ticketImage";
 import { getEmailSettings, saveEmailSettings, type EmailSettings } from "../lib/settings";
 import { buildHtml, buildSubject, type RenderVars } from "../lib/emailTemplate";
 import { sendEmail } from "../lib/brevo";
+import { baseFromRequest, resolvePublicUrl } from "../lib/publicUrl";
 
 function authed(req: FastifyRequest): boolean {
   const h = req.headers.authorization ?? "";
@@ -35,8 +36,9 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // --- Info del webhook lista para pegar en GHL ---
-  app.get("/api/admin/webhook-info", async () => {
-    const base = config.publicUrl;
+  app.get("/api/admin/webhook-info", async (req) => {
+    // Usa el dominio real desde el que estás viendo el panel (auto), o el resuelto.
+    const base = baseFromRequest(req) || (await resolvePublicUrl());
     const token = config.webhook.secret;
     return {
       method: "POST",
@@ -143,13 +145,14 @@ export async function adminRoutes(app: FastifyInstance) {
     // Usa los settings guardados, pero permite previsualizar cambios sin guardar.
     const saved = await getEmailSettings();
     const s: EmailSettings = { ...saved, ...b };
+    const base = baseFromRequest(req) || (await resolvePublicUrl());
 
     const vars: RenderVars = {
       name: "Nombre de Prueba",
       email: to,
       raffleName: "Viaje a Bali · Jorge Darek",
       product: "Guía Definitiva de Entrenamiento de Fuerza",
-      linkAcceso: `${config.publicUrl}/?email=${encodeURIComponent(to)}`,
+      linkAcceso: `${base}/?email=${encodeURIComponent(to)}`,
       tickets: [
         { number: 101, code: "TK-000101" },
         { number: 102, code: "TK-000102" },
@@ -160,7 +163,7 @@ export async function adminRoutes(app: FastifyInstance) {
         to: { email: to, name: vars.name },
         from: { email: s.from_email, name: s.from_name },
         subject: buildSubject(s, vars),
-        html: buildHtml(s, vars),
+        html: buildHtml(s, vars, base),
         tags: ["test"],
       });
       return { ok: true };

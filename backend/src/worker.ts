@@ -8,6 +8,7 @@ import { getPurchaseForEmail, markPurchaseEmail } from "./lib/tickets";
 import { sendEmail } from "./lib/brevo";
 import { buildSubject, buildHtml, type RenderVars } from "./lib/emailTemplate";
 import { getEmailSettings } from "./lib/settings";
+import { resolvePublicUrl } from "./lib/publicUrl";
 
 const worker = new Worker<SendTicketsJob>(
   QUEUE_NAME,
@@ -29,6 +30,7 @@ const worker = new Worker<SendTicketsJob>(
     const name = data.purchase.name as string;
     const email = data.purchase.email as string;
     const settings = await getEmailSettings();
+    const baseUrl = await resolvePublicUrl();
     const vars: RenderVars = {
       name,
       email,
@@ -38,7 +40,7 @@ const worker = new Worker<SendTicketsJob>(
       tickets: data.tickets.map((t) => ({ number: t.number, code: t.code })),
     };
     const subject = buildSubject(settings, vars);
-    const html = buildHtml(settings, vars);
+    const html = buildHtml(settings, vars, baseUrl);
 
     try {
       const messageId = await sendEmail({
