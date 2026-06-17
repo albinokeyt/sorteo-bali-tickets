@@ -60,9 +60,9 @@ export default function Purchases() {
     } catch (e: any) { toast(e.message, "err"); }
   }
 
-  async function download() {
+  async function download(excludeAnnulled = false) {
     try {
-      await api.exportCsv();
+      await api.exportCsv(excludeAnnulled);
       toast("Descargando CSV…", "ok");
     } catch (e: any) { toast(e.message, "err"); }
   }
@@ -79,7 +79,8 @@ export default function Purchases() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <button className="btn sm" onClick={download}>⬇ Descargar todos (CSV)</button>
+          <button className="btn sm" onClick={() => download(false)}>⬇ Descargar todos</button>
+          <button className="btn ghost sm" onClick={() => download(true)}>⬇ Sin anulados</button>
         </div>
       </div>
 

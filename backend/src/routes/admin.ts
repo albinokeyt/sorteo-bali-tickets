@@ -146,8 +146,11 @@ export async function adminRoutes(app: FastifyInstance) {
     return { ok: true, code, annulled };
   });
 
-  // --- Exportar TODOS los tickets a CSV ---
-  app.get("/api/admin/export.csv", async (_req, reply) => {
+  // --- Exportar tickets a CSV (todos, o sin anulados con ?excludeAnnulled=1) ---
+  app.get("/api/admin/export.csv", async (req, reply) => {
+    const excludeAnnulled = ["1", "true", "yes"].includes(
+      String((req.query as any)?.excludeAnnulled ?? "").toLowerCase()
+    );
     const { rows } = await pool.query(
       `SELECT t.ticket_sequential_number AS num, t.ticket_number AS codigo,
               t.name AS nombre, t.email, p.external_order_id AS compra,
@@ -155,6 +158,7 @@ export async function adminRoutes(app: FastifyInstance) {
               t.created_at AS creado
          FROM tickets t JOIN purchases p ON p.id = t.purchase_id
         WHERE t.deleted_at IS NULL
+          ${excludeAnnulled ? "AND t.is_annulled = false" : ""}
         ORDER BY t.ticket_sequential_number`
     );
     const esc = (v: any) => {
@@ -165,9 +169,10 @@ export async function adminRoutes(app: FastifyInstance) {
     const lines = [header.join(",")];
     for (const r of rows) lines.push(header.map((h) => esc((r as any)[h])).join(","));
     const csv = "﻿" + lines.join("\r\n"); // BOM para Excel
+    const fname = excludeAnnulled ? "tickets-sin-anulados.csv" : "tickets.csv";
     return reply
       .header("Content-Type", "text/csv; charset=utf-8")
-      .header("Content-Disposition", 'attachment; filename="tickets.csv"')
+      .header("Content-Disposition", `attachment; filename="${fname}"`)
       .send(csv);
   });
 

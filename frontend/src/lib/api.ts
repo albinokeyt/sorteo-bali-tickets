@@ -44,15 +44,16 @@ export const api = {
     req("/api/admin/purchase-email", { method: "POST", body: JSON.stringify({ purchaseId, email, resend }) }, true),
   annulTicket: (code: string, annulled: boolean) =>
     req("/api/admin/ticket-annul", { method: "POST", body: JSON.stringify({ code, annulled }) }, true),
-  async exportCsv() {
+  async exportCsv(excludeAnnulled = false) {
     const t = getToken();
-    const res = await fetch("/api/admin/export.csv", { headers: t ? { authorization: `Bearer ${t}` } : {} });
+    const qs = excludeAnnulled ? "?excludeAnnulled=1" : "";
+    const res = await fetch(`/api/admin/export.csv${qs}`, { headers: t ? { authorization: `Bearer ${t}` } : {} });
     if (!res.ok) throw new Error("No se pudo exportar");
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "tickets.csv";
+    a.download = excludeAnnulled ? "tickets-sin-anulados.csv" : "tickets.csv";
     a.click();
     URL.revokeObjectURL(url);
   },
