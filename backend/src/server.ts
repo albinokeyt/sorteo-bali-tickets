@@ -59,7 +59,11 @@ ensureDefaultSettings().catch((err) => app.log.warn({ err }, "no se pudieron sem
 
 app
   .listen({ host: "0.0.0.0", port })
-  .then(() => app.log.info(`API escuchando en :${port} · PUBLIC_URL=${config.publicUrl}`))
+  .then(() => {
+    app.log.info(`API escuchando en :${port} · PUBLIC_URL=${config.publicUrl}`);
+    app.log.info(`🔗 Webhook GHL: ${config.publicUrl}/webhook/ghl  (token en header X-Webhook-Token o ?token=)`);
+    app.log.info(`🛠️  Panel admin: ${config.publicUrl}/admin  (allí ves el webhook con el token ya incluido)`);
+  })
   .catch((err) => {
     app.log.error(err);
     process.exit(1);

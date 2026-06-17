@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, clearToken, getToken } from "../lib/api";
 import { useToast } from "../components/Toast";
 import EmailSettings from "../components/EmailSettings";
+import WebhookInfo from "../components/WebhookInfo";
 
 type Stats = { tickets: string; purchases: string; sent: string; pending: string; failed: string };
 type Row = {
@@ -125,6 +126,9 @@ export default function AdminDashboard() {
           <button className="btn danger sm" onClick={reset}>Resetear sorteo</button>
         </div>
       </div>
+
+      {/* Webhook listo para GHL */}
+      <WebhookInfo />
 
       {/* Crear tickets */}
       <div className="card" style={{ marginTop: 20 }}>

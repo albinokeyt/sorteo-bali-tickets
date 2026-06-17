@@ -34,6 +34,25 @@ export async function adminRoutes(app: FastifyInstance) {
     }
   });
 
+  // --- Info del webhook lista para pegar en GHL ---
+  app.get("/api/admin/webhook-info", async () => {
+    const base = config.publicUrl;
+    const token = config.webhook.secret;
+    return {
+      method: "POST",
+      url: `${base}/webhook/ghl`,
+      urlWithToken: `${base}/webhook/ghl?token=${encodeURIComponent(token)}`,
+      header: { name: "X-Webhook-Token", value: token },
+      fields: {
+        email: config.webhook.fieldEmail,
+        name: config.webhook.fieldName,
+        quantity: config.webhook.fieldQuantity,
+        link: config.webhook.fieldLink,
+        orderId: config.webhook.fieldOrderId,
+      },
+    };
+  });
+
   // --- Estadísticas ---
   app.get("/api/admin/stats", async () => {
     const { rows } = await pool.query(`
