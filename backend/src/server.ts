@@ -3,6 +3,7 @@
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import fastifyCors from "@fastify/cors";
+import fastifyRateLimit from "@fastify/rate-limit";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { config } from "./config";
@@ -21,6 +22,10 @@ const app = Fastify({
 });
 
 await app.register(fastifyCors, { origin: true });
+
+// Límite de peticiones. global:false → solo afecta a rutas que lo pidan
+// (el login), para no estorbar al webhook que puede recibir miles de golpe.
+await app.register(fastifyRateLimit, { global: false });
 
 // Auto-detección del dominio público: aprende de las cabeceras del proxy
 // (EasyPanel) en cada request y lo guarda para que el worker lo use en emails.

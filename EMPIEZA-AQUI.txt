@@ -17,7 +17,8 @@ PASO 2 — Dominio:
 
 PASO 3 — Entra al panel:
   - https://TU-DOMINIO/admin
-  - Usuario: (no hay) · Contraseña: la de ADMIN_PASSWORD del .env
+  - Usuario: (no hay) · Contraseña: ADMIN_PASSWORD del .env (x6aY9_V-rdSbMOk-RFte)
+  - El login tiene límite de intentos (anti-fuerza-bruta).
   - Allí verás el WEBHOOK LISTO PARA COPIAR y pegar en GHL.
   - Allí también puedes editar el email (HTML, asunto, remitente, etc.).
 

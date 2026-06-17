@@ -19,14 +19,28 @@ function authed(req: FastifyRequest): boolean {
 }
 
 export async function adminRoutes(app: FastifyInstance) {
-  // --- Login ---
-  app.post("/api/admin/login", async (req, reply) => {
-    const pw = String((req.body as any)?.password ?? "");
-    if (!checkPassword(pw)) {
-      return reply.code(401).send({ error: "contraseña incorrecta" });
+  // --- Login (con límite anti-fuerza-bruta: 8 intentos/min por IP) ---
+  app.post(
+    "/api/admin/login",
+    {
+      config: {
+        rateLimit: {
+          max: 8,
+          timeWindow: "1 minute",
+          errorResponseBuilder: () => ({
+            error: "Demasiados intentos. Espera 1 minuto e inténtalo de nuevo.",
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const pw = String((req.body as any)?.password ?? "");
+      if (!checkPassword(pw)) {
+        return reply.code(401).send({ error: "contraseña incorrecta" });
+      }
+      return { token: issueToken() };
     }
-    return { token: issueToken() };
-  });
+  );
 
   // Middleware: todo lo demás requiere token válido.
   app.addHook("preHandler", async (req, reply) => {
