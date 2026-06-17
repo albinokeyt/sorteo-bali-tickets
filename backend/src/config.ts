@@ -1,0 +1,70 @@
+// Configuración central leída de variables de entorno.
+// Todo lo que se pueda ajustar sin tocar código vive aquí.
+
+function env(key: string, fallback?: string): string {
+  const v = process.env[key];
+  if (v === undefined || v === "") {
+    if (fallback !== undefined) return fallback;
+    throw new Error(`Falta la variable de entorno requerida: ${key}`);
+  }
+  return v;
+}
+
+function num(key: string, fallback: number): number {
+  const v = process.env[key];
+  if (v === undefined || v === "") return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+export const config = {
+  publicUrl: env("PUBLIC_URL", "http://localhost:3000").replace(/\/$/, ""),
+  port: num("API_PORT", 3000),
+  databaseUrl: env("DATABASE_URL", "postgres://tickets:tickets@db:5432/tickets"),
+  redisUrl: env("REDIS_URL", "redis://redis:6379"),
+
+  brevo: {
+    apiKey: env("BREVO_API_KEY", "MISSING"),
+    fromEmail: env("EMAIL_FROM", "tickets@example.com"),
+    fromName: env("EMAIL_FROM_NAME", "Tickets"),
+    subject: env("EMAIL_SUBJECT", "🎟️ Tus tickets del sorteo"),
+    ratePerSec: num("EMAIL_RATE_PER_SEC", 10),
+    maxAttempts: num("EMAIL_MAX_ATTEMPTS", 4),
+  },
+
+  webhook: {
+    secret: env("WEBHOOK_SECRET", "changeme"),
+    fieldEmail: env("GHL_FIELD_EMAIL", "email"),
+    fieldName: env("GHL_FIELD_NAME", "full_name"),
+    fieldQuantity: env("GHL_FIELD_QUANTITY", "customData.TkComprados"),
+    fieldOrderId: env("GHL_FIELD_ORDER_ID", "customData.purchase_id"),
+    fieldLink: env("GHL_FIELD_LINK", "customData.LinkAcceso"),
+    fieldProduct: env("GHL_FIELD_PRODUCT", ""), // opcional: producto comprado
+    defaultRaffleSlug: env("DEFAULT_RAFFLE_SLUG", "viaje-bali"),
+  },
+
+  admin: {
+    password: env("ADMIN_PASSWORD", "admin"),
+    sessionSecret: env("SESSION_SECRET", "session-secret"),
+  },
+
+  ticket: {
+    template: env("TICKET_TEMPLATE", "/app/assets/ticket-template.png"),
+    cacheDir: env("TICKET_CACHE_DIR", "/app/cache"),
+    // Fuente y color del texto que se escribe sobre el ticket
+    font: env("TICKET_FONT", "DejaVu Serif, serif"),
+    color: env("TICKET_TEXT_COLOR", "#946623"),
+    anchor: env("TICKET_TEXT_ANCHOR", "middle"), // start | middle | end
+    // Ancho máximo del texto (px). Si un email es más largo, se reduce el
+    // tamaño de fuente automáticamente para que no se salga del ticket.
+    maxWidth: num("TICKET_MAX_WIDTH", 900),
+    // Posición y tamaño de cada campo (medidos sobre la plantilla del usuario)
+    name:   { x: num("TICKET_NAME_X", 836),   y: num("TICKET_NAME_Y", 514),   size: num("TICKET_NAME_SIZE", 42) },
+    email:  { x: num("TICKET_EMAIL_X", 836),  y: num("TICKET_EMAIL_Y", 581),  size: num("TICKET_EMAIL_SIZE", 34) },
+    number: { x: num("TICKET_NUMBER_X", 836), y: num("TICKET_NUMBER_Y", 650), size: num("TICKET_NUMBER_SIZE", 46) },
+    numberPrefix: env("TICKET_NUMBER_PREFIX", "#"),
+    numberColor: env("TICKET_NUMBER_COLOR", "#5b3f17"),
+  },
+};
+
+export const QUEUE_NAME = "send-tickets";

@@ -1,0 +1,29 @@
+{
+  "name": "ticket-system-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "server": "node --import tsx src/server.ts",
+    "worker": "node --import tsx src/worker.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/static": "^7.0.4",
+    "bullmq": "^5.34.0",
+    "fastify": "^4.28.1",
+    "ioredis": "^5.4.1",
+    "pg": "^8.13.1",
+    "sharp": "^0.33.5",
+    "tsx": "^4.19.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "ioredis": "^5.4.1"
+  }
+}

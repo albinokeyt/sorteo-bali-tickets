@@ -1,0 +1,112 @@
+# ============================================================
+#  Sistema de Tickets de Sorteo — listo para EasyPanel y para local.
+#
+#  EasyPanel: crea un proyecto -> servicio tipo "Compose" -> pega este
+#  archivo (o conéctalo a tu repo). Pon las variables en la pestaña
+#  Environment de EasyPanel. Luego añade un Dominio apuntando al
+#  servicio "api", puerto 3000. El webhook quedará en:
+#       https://TU-DOMINIO/webhook/ghl
+#
+#  Local: copia .env.example a .env y ejecuta:  docker compose up -d --build
+# ============================================================
+
+# Variables comunes a api y worker (se rellenan desde .env en local
+# o desde la pestaña Environment de EasyPanel). Llevan valores por
+# defecto para que arranque aunque falte alguna no crítica.
+x-app-env: &app-env
+  DATABASE_URL: postgres://${POSTGRES_USER:-tickets}:${POSTGRES_PASSWORD:-tickets}@db:5432/${POSTGRES_DB:-tickets}
+  REDIS_URL: redis://redis:6379
+  PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+  BREVO_API_KEY: ${BREVO_API_KEY:-MISSING}
+  EMAIL_FROM: ${EMAIL_FROM:-tickets@tudominio.com}
+  EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Movimiento Real}
+  EMAIL_SUBJECT: ${EMAIL_SUBJECT:-🎫 Tu Ticket Dorado ya está aquí}
+  EMAIL_PREHEADER: ${EMAIL_PREHEADER:-Tus tickets del sorteo están listos.}
+  WHATSAPP_URL: ${WHATSAPP_URL:-https://wa.me/34919930715}
+  EMAIL_RATE_PER_SEC: ${EMAIL_RATE_PER_SEC:-10}
+  EMAIL_MAX_ATTEMPTS: ${EMAIL_MAX_ATTEMPTS:-4}
+  WEBHOOK_SECRET: ${WEBHOOK_SECRET:-cambia-este-secreto}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-cambia-esta-clave-admin}
+  SESSION_SECRET: ${SESSION_SECRET:-cambia-este-session-secret}
+  DEFAULT_RAFFLE_SLUG: ${DEFAULT_RAFFLE_SLUG:-viaje-bali}
+  GHL_FIELD_EMAIL: ${GHL_FIELD_EMAIL:-email}
+  GHL_FIELD_NAME: ${GHL_FIELD_NAME:-full_name}
+  GHL_FIELD_QUANTITY: ${GHL_FIELD_QUANTITY:-customData.TkComprados}
+  GHL_FIELD_LINK: ${GHL_FIELD_LINK:-customData.LinkAcceso}
+  GHL_FIELD_ORDER_ID: ${GHL_FIELD_ORDER_ID:-customData.purchase_id}
+  GHL_FIELD_PRODUCT: ${GHL_FIELD_PRODUCT:-}
+  TICKET_TEMPLATE: ${TICKET_TEMPLATE:-/app/assets/ticket-template.png}
+  TICKET_CACHE_DIR: /app/cache
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tickets}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tickets}
+      POSTGRES_DB: ${POSTGRES_DB:-tickets}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tickets}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ticket-system
+    restart: unless-stopped
+    command: ["node", "--import", "tsx", "src/server.ts"]
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./assets:/app/assets:ro          # plantilla del ticket
+      - ticketcache:/app/cache           # imágenes de ticket cacheadas
+    ports:
+      - "${API_PORT:-3000}:3000"
+
+  worker:
+    image: ticket-system
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["node", "--import", "tsx", "src/worker.ts"]
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    volumes:
+      - ./assets:/app/assets:ro
+      - ticketcache:/app/cache
+    # Para más volumen de envío:  docker compose up -d --scale worker=4
+
+volumes:
+  pgdata:
+  redisdata:
+  ticketcache:
