@@ -47,7 +47,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tickets}
       POSTGRES_DB: ${POSTGRES_DB:-tickets}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata2:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tickets}"]
@@ -110,6 +110,6 @@ services:
     # Para más volumen de envío:  docker compose up -d --scale worker=4
 
 volumes:
-  pgdata:
+  pgdata2:      # volumen de la base de datos (renombrado para re-inicializar limpio)
   redisdata:
   ticketcache:
