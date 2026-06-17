@@ -1,6 +1,7 @@
 // Renderiza la plantilla de email (editable) sustituyendo las variables
 // {{...}} por los datos reales de la compra.
 import type { EmailSettings } from "./settings";
+import { ticketExt } from "./ticketImage";
 
 export type EmailTicket = { number: number; code: string };
 
@@ -24,7 +25,7 @@ function ticketsHtml(tickets: EmailTicket[], base: string): string {
   return tickets
     .map(
       (t) =>
-        `<img src="${base}/t/${t.number}.png" width="520" alt="Ticket ${t.number}" />`
+        `<img src="${base}/t/${t.number}.${ticketExt}" width="520" alt="Ticket ${t.number}" />`
     )
     .join("\n");
 }

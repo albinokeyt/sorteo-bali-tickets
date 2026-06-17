@@ -56,6 +56,11 @@ export const config = {
   ticket: {
     template: env("TICKET_TEMPLATE", "/app/assets/ticket-template.png"),
     cacheDir: env("TICKET_CACHE_DIR", "/app/cache"),
+    // Formato de salida: jpeg (recomendado, ~40x más ligero) o png.
+    format: env("TICKET_FORMAT", "jpeg").toLowerCase() === "png" ? "png" : "jpeg",
+    quality: num("TICKET_QUALITY", 82),
+    // Ancho de salida en px (0 = tamaño original de la plantilla). 1000 da ~94KB.
+    outputWidth: num("TICKET_OUTPUT_WIDTH", 1000),
     // Fuente y color del texto que se escribe sobre el ticket
     font: env("TICKET_FONT", "DejaVu Serif, serif"),
     color: env("TICKET_TEXT_COLOR", "#946623"),

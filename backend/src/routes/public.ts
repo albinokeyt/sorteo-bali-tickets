@@ -2,6 +2,7 @@
 // y ve sus tickets. Solo lectura.
 import type { FastifyInstance } from "fastify";
 import { pool } from "../db";
+import { ticketExt } from "../lib/ticketImage";
 
 export async function publicRoutes(app: FastifyInstance) {
   app.get("/api/tickets", async (req, reply) => {
@@ -37,7 +38,7 @@ export async function publicRoutes(app: FastifyInstance) {
         status: t.status,
         created_at: t.created_at,
         raffle_name: t.raffle_name,
-        image_url: `/t/${Number(t.ticket_sequential_number)}.png`,
+        image_url: `/t/${Number(t.ticket_sequential_number)}.${ticketExt}`,
       })),
     };
   });

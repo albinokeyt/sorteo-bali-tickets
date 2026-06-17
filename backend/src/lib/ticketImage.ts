@@ -42,9 +42,11 @@ function textNode(text: string, x: number, y: number, size: number, color: strin
 
 export type TicketData = { number: number; name: string; email: string };
 
+export const ticketExt = config.ticket.format === "png" ? "png" : "jpg";
+
 function cacheKey(d: TicketData): string {
   const h = crypto.createHash("sha1").update(`${d.number}|${d.name}|${d.email}`).digest("hex").slice(0, 10);
-  return `ticket-${d.number}-${h}.png`;
+  return `ticket-${d.number}-${h}.${ticketExt}`;
 }
 
 export async function renderTicketImage(d: TicketData): Promise<Buffer> {
@@ -65,10 +67,21 @@ export async function renderTicketImage(d: TicketData): Promise<Buffer> {
     ${textNode(numberText, t.number.x, t.number.y, fitSize(numberText, t.number.size), t.numberColor, 700)}
   </svg>`;
 
-  const buf = await sharp(config.ticket.template)
+  // Paso 1: componer el texto sobre la plantilla a tamaño completo
+  // (sharp aplica resize ANTES de composite, por eso se hace en 2 pasos).
+  const composited = await sharp(config.ticket.template)
     .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-    .png()
     .toBuffer();
+
+  // Paso 2: reducir tamaño (si aplica) y exportar al formato configurado
+  let pipe = sharp(composited);
+  if (config.ticket.outputWidth > 0) {
+    pipe = pipe.resize({ width: config.ticket.outputWidth });
+  }
+  const buf =
+    config.ticket.format === "png"
+      ? await pipe.png().toBuffer()
+      : await pipe.jpeg({ quality: config.ticket.quality, mozjpeg: true }).toBuffer();
 
   fs.mkdir(config.ticket.cacheDir, { recursive: true })
     .then(() => fs.writeFile(cachePath, buf))
@@ -82,7 +95,7 @@ export async function clearImageCache() {
     const files = await fs.readdir(config.ticket.cacheDir);
     await Promise.all(
       files
-        .filter((f) => f.startsWith("ticket-") && f.endsWith(".png"))
+        .filter((f) => f.startsWith("ticket-"))
         .map((f) => fs.unlink(path.join(config.ticket.cacheDir, f)).catch(() => {}))
     );
   } catch {
