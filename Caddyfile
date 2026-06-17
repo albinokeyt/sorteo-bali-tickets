@@ -1,0 +1,7 @@
+# Reverse proxy con HTTPS automático (Let's Encrypt).
+# SITE_ADDRESS lo defines en el .env:
+#   - un dominio  -> Caddy saca el certificado SSL solo (https)
+#   - ":80"       -> solo HTTP (para probar por IP, sin dominio)
+{$SITE_ADDRESS} {
+	reverse_proxy api:3000
+}

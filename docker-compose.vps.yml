@@ -1,0 +1,29 @@
+# ============================================================
+#  Override para desplegar en un VPS propio (sin EasyPanel).
+#  Añade Caddy como reverse proxy con HTTPS automático.
+#
+#  Uso:
+#    docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d --build
+#
+#  Requisito: en el .env pon SITE_ADDRESS con tu dominio (o ":80" para probar
+#  por IP sin SSL). Apunta el DNS (registro A) de tu dominio a la IP del VPS.
+# ============================================================
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - api
+
+volumes:
+  caddydata:
+  caddyconfig:

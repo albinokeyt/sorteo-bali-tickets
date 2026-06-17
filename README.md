@@ -90,6 +90,50 @@ Esa es la URL que pones en GHL (ver sección siguiente).
 
 ---
 
+## 🖥️ Desplegar en un VPS propio (con HTTPS automático)
+
+La opción más simple y fiable. Incluye **Caddy** como reverse proxy con SSL
+automático (Let's Encrypt). Todo arranca con un comando.
+
+**1. VPS** con Ubuntu (Hetzner, DigitalOcean, Contabo…). Instala Docker:
+```bash
+curl -fsSL https://get.docker.com | sh
+```
+
+**2. Trae el código:**
+```bash
+git clone https://github.com/albinokeyt/sorteo-bali-tickets.git
+cd sorteo-bali-tickets
+```
+
+**3. Crea el `.env`** (copia de `.env.example` y rellena Brevo + claves):
+```bash
+cp .env.example .env
+nano .env
+```
+- `SITE_ADDRESS=tickets.tudominio.com`  ← tu dominio (Caddy saca el SSL solo)
+- (Para probar sin dominio por IP: `SITE_ADDRESS=:80`)
+- Deja `PUBLIC_URL=` vacío (se auto-detecta).
+
+**4. DNS:** crea un registro **A** de `tickets.tudominio.com` → IP del VPS.
+
+**5. Arranca** (con el override de VPS que añade Caddy):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d --build
+```
+
+Listo. En `https://tickets.tudominio.com` está la web y en `/admin` el panel.
+Caddy obtiene el certificado HTTPS solo y la app detecta el dominio automáticamente.
+
+Comandos útiles:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.vps.yml logs -f   # ver logs
+docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d --scale worker=4   # más workers
+docker compose -f docker-compose.yml -f docker-compose.vps.yml down      # parar
+```
+
+---
+
 ## 🔗 Conectar el webhook de GHL
 
 En GHL, en el workflow que se dispara con la compra, añade una acción **Webhook** apuntando a:
