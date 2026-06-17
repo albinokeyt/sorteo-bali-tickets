@@ -15,6 +15,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Route path="/" element={<Index />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/admin" element={<AdminDashboard />} />
         <Route path="*" element={<Index />} />
       </Routes>
     </BrowserRouter>

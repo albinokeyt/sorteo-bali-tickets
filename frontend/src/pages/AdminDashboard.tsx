@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { api, clearToken, getToken } from "../lib/api";
 import { useToast } from "../components/Toast";
 import EmailSettings from "../components/EmailSettings";
@@ -13,6 +13,8 @@ type Stats = { tickets: string; purchases: string; sent: string; pending: string
 export default function AdminDashboard() {
   const toast = useToast();
   const nav = useNavigate();
+  // Solo en la ruta "secreta" /admin/admin se ven los botones de config sensible.
+  const showConfig = useLocation().pathname.replace(/\/+$/, "") === "/admin/admin";
   const [stats, setStats] = useState<Stats | null>(null);
 
   // modales
@@ -94,8 +96,12 @@ export default function AdminDashboard() {
       <div className="topbar">
         <div className="badge">🔐 PANEL ADMIN</div>
         <div className="row">
-          <button className="btn ghost sm" onClick={() => setShowWebhook(true)}>🔗 Webhook</button>
-          <button className="btn ghost sm" onClick={() => setShowEmail(true)}>✉️ Email</button>
+          {showConfig && (
+            <>
+              <button className="btn ghost sm" onClick={() => setShowWebhook(true)}>🔗 Webhook</button>
+              <button className="btn ghost sm" onClick={() => setShowEmail(true)}>✉️ Email</button>
+            </>
+          )}
           <button className="btn ghost sm" onClick={logout}>Salir</button>
         </div>
       </div>
