@@ -74,6 +74,10 @@ worker.on("completed", (job) => {
 worker.on("failed", (job, err) => {
   console.error(`[worker] fallo purchase=${job?.data.purchaseId}: ${err?.message}`);
 });
+// Evita que un error de conexión transitorio tumbe el proceso del worker.
+worker.on("error", (err) => {
+  console.warn(`[worker] error (reintentando): ${err?.message}`);
+});
 
 console.log(
   `[worker] escuchando cola "${QUEUE_NAME}" · ${config.brevo.ratePerSec} emails/seg · ${config.brevo.maxAttempts} intentos`

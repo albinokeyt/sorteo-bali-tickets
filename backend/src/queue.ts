@@ -8,7 +8,17 @@ import { config, QUEUE_NAME } from "./config";
 
 export const connection = new IORedis(config.redisUrl, {
   maxRetriesPerRequest: null, // requerido por BullMQ
+  enableReadyCheck: false,
+  retryStrategy: (times) => Math.min(times * 200, 5000), // reintenta sin rendirse
 });
+
+// IMPORTANTE: manejar 'error' evita que un fallo transitorio de Redis
+// (reinicio, DNS aún no listo) tumbe el proceso. Sin esto, el worker
+// se cae en bucle y EasyPanel lo marca en gris.
+connection.on("error", (err: Error) => {
+  console.warn(`[redis] conexión con problemas (reintentando): ${err.message}`);
+});
+connection.on("ready", () => console.log("[redis] conectado"));
 
 export type SendTicketsJob = {
   purchaseId: string;
