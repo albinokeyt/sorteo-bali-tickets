@@ -63,17 +63,17 @@ export const config = {
     outputWidth: num("TICKET_OUTPUT_WIDTH", 1000),
     // Fuente y color del texto que se escribe sobre el ticket
     font: env("TICKET_FONT", "DejaVu Serif, serif"),
-    color: env("TICKET_TEXT_COLOR", "#946623"),
+    color: env("TICKET_TEXT_COLOR", "#462303"),
     anchor: env("TICKET_TEXT_ANCHOR", "middle"), // start | middle | end
     // Ancho máximo del texto (px). Si un email es más largo, se reduce el
     // tamaño de fuente automáticamente para que no se salga del ticket.
-    maxWidth: num("TICKET_MAX_WIDTH", 900),
-    // Posición y tamaño de cada campo (medidos sobre la plantilla del usuario)
-    name:   { x: num("TICKET_NAME_X", 836),   y: num("TICKET_NAME_Y", 514),   size: num("TICKET_NAME_SIZE", 42) },
-    email:  { x: num("TICKET_EMAIL_X", 836),  y: num("TICKET_EMAIL_Y", 581),  size: num("TICKET_EMAIL_SIZE", 34) },
-    number: { x: num("TICKET_NUMBER_X", 836), y: num("TICKET_NUMBER_Y", 650), size: num("TICKET_NUMBER_SIZE", 46) },
+    maxWidth: num("TICKET_MAX_WIDTH", 880),
+    // Posición y tamaño de cada campo (medidos sobre la plantilla VIAJE A BALI v2)
+    name:   { x: num("TICKET_NAME_X", 836),   y: num("TICKET_NAME_Y", 578),   size: num("TICKET_NAME_SIZE", 36) },
+    email:  { x: num("TICKET_EMAIL_X", 836),  y: num("TICKET_EMAIL_Y", 616),  size: num("TICKET_EMAIL_SIZE", 28) },
+    number: { x: num("TICKET_NUMBER_X", 836), y: num("TICKET_NUMBER_Y", 704), size: num("TICKET_NUMBER_SIZE", 50) },
     numberPrefix: env("TICKET_NUMBER_PREFIX", "#"),
-    numberColor: env("TICKET_NUMBER_COLOR", "#5b3f17"),
+    numberColor: env("TICKET_NUMBER_COLOR", "#462303"),
   },
 };
 
