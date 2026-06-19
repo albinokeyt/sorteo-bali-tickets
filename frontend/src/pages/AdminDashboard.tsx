@@ -118,7 +118,7 @@ export default function AdminDashboard() {
         <div className="row" style={{ marginTop: 16 }}>
           <button className="btn ghost sm" onClick={loadStats}>↻ Refrescar</button>
           <button className="btn ghost sm" onClick={resendFailed}>Reenviar fallidos/pendientes</button>
-          <button className="btn danger sm" onClick={reset}>Resetear sorteo</button>
+          {showConfig && <button className="btn danger sm" onClick={reset}>Resetear sorteo</button>}
         </div>
       </div>
 
