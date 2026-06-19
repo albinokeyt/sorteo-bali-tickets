@@ -32,6 +32,11 @@ export const config = {
     subject: env("EMAIL_SUBJECT", "🎟️ Tus tickets del sorteo"),
     ratePerSec: num("EMAIL_RATE_PER_SEC", 10),
     maxAttempts: num("EMAIL_MAX_ATTEMPTS", 4),
+    // Cuántas imágenes de ticket se incrustan en el email como máximo.
+    // Si la compra tiene más, se muestran estas y un aviso "+N más" con botón
+    // a la web (donde se ven TODAS). Evita emails enormes que se cortan.
+    maxTicketImages: num("EMAIL_TICKETS_MAX_IMAGES", 15),
+    ticketImgWidth: num("EMAIL_TICKET_IMG_WIDTH", 300),
     // Modo simulación: procesa la cola SIN enviar de verdad por Brevo.
     // Útil para pruebas de carga sin gastar envíos ni dañar la reputación.
     dryRun: (process.env.EMAIL_DRY_RUN ?? "").toLowerCase() === "true",
