@@ -61,10 +61,15 @@ export async function renderTicketImage(d: TicketData): Promise<Buffer> {
   const t = config.ticket;
   const numberText = `${t.numberPrefix}${d.number}`;
 
+  const announceNode = t.announce
+    ? textNode(t.announce, t.number.x, t.announceY, fitSize(t.announce, t.announceSize), t.color, 400)
+    : "";
+
   const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    ${announceNode}
+    ${textNode(numberText, t.number.x, t.number.y, fitSize(numberText, t.number.size), t.numberColor, 700)}
     ${textNode(d.name, t.name.x, t.name.y, fitSize(d.name, t.name.size), t.color, 600)}
     ${textNode(d.email, t.email.x, t.email.y, fitSize(d.email, t.email.size), t.color, 400)}
-    ${textNode(numberText, t.number.x, t.number.y, fitSize(numberText, t.number.size), t.numberColor, 700)}
   </svg>`;
 
   // Paso 1: componer el texto sobre la plantilla a tamaño completo

@@ -68,11 +68,16 @@ export const config = {
     // Ancho máximo del texto (px). Si un email es más largo, se reduce el
     // tamaño de fuente automáticamente para que no se salga del ticket.
     maxWidth: num("TICKET_MAX_WIDTH", 880),
-    // Posición y tamaño de cada campo (medidos sobre la plantilla VIAJE A BALI v2)
-    name:   { x: num("TICKET_NAME_X", 836),   y: num("TICKET_NAME_Y", 578),   size: num("TICKET_NAME_SIZE", 36) },
-    email:  { x: num("TICKET_EMAIL_X", 836),  y: num("TICKET_EMAIL_Y", 616),  size: num("TICKET_EMAIL_SIZE", 28) },
-    number: { x: num("TICKET_NUMBER_X", 836), y: num("TICKET_NUMBER_Y", 704), size: num("TICKET_NUMBER_SIZE", 50) },
-    numberPrefix: env("TICKET_NUMBER_PREFIX", "#"),
+    // Línea fija (anuncio del sorteo). Déjala vacía ("") para ocultarla.
+    announce: env("TICKET_ANNOUNCE", "GANADOR/GANADORA VIERNES 3 DE JULIO 2026"),
+    announceY: num("TICKET_ANNOUNCE_Y", 572),
+    announceSize: num("TICKET_ANNOUNCE_SIZE", 24),
+    // Posición y tamaño de cada campo (plantilla VIAJE A BALI v2). De arriba a abajo:
+    // anuncio · Ticket #número · (divisor) · Nombre · Correo
+    number: { x: num("TICKET_NUMBER_X", 836), y: num("TICKET_NUMBER_Y", 606), size: num("TICKET_NUMBER_SIZE", 38) },
+    name:   { x: num("TICKET_NAME_X", 836),   y: num("TICKET_NAME_Y", 676),   size: num("TICKET_NAME_SIZE", 28) },
+    email:  { x: num("TICKET_EMAIL_X", 836),  y: num("TICKET_EMAIL_Y", 704),  size: num("TICKET_EMAIL_SIZE", 22) },
+    numberPrefix: env("TICKET_NUMBER_PREFIX", "Ticket: #"),
     numberColor: env("TICKET_NUMBER_COLOR", "#462303"),
   },
 };
