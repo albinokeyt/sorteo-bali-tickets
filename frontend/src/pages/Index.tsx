@@ -78,9 +78,9 @@ export default function Index() {
               href={whatsapp}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ background: "#25D366", color: "#fff", marginTop: 10 }}
+              style={{ background: "#25D366", color: "#111", textDecoration: "none", marginTop: 10 }}
             >
-              💬 Escríbenos por WhatsApp
+              💬 Soporte por WhatsApp
             </a>
           )}
         </div>
