@@ -28,6 +28,7 @@ async function req(path: string, opts: RequestInit = {}, auth = false) {
 
 export const api = {
   // público
+  publicConfig: () => req("/api/public-config"),
   searchTickets: (email: string) =>
     req(`/api/tickets?email=${encodeURIComponent(email)}`),
 

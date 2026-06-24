@@ -17,9 +17,11 @@ export default function Index() {
   const [loading, setLoading] = useState(false);
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [link, setLink] = useState<string | null>(null);
+  const [whatsapp, setWhatsapp] = useState<string | null>(null);
 
   // Permite abrir directamente con ?email=... (lo usa el botón del email)
   useEffect(() => {
+    api.publicConfig().then((c) => setWhatsapp(c.whatsapp_url || null)).catch(() => {});
     const q = new URLSearchParams(window.location.search).get("email");
     if (q) {
       setEmail(q);
@@ -70,6 +72,17 @@ export default function Index() {
           <button className="btn gold" disabled={loading} onClick={() => search()}>
             {loading ? "Buscando..." : "Buscar mis tickets"}
           </button>
+          {whatsapp && (
+            <a
+              className="btn"
+              href={whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ background: "#25D366", color: "#fff", marginTop: 10 }}
+            >
+              💬 Escríbenos por WhatsApp
+            </a>
+          )}
         </div>
       ) : (
         <div style={{ width: "100%" }}>

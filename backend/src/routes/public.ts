@@ -3,8 +3,15 @@
 import type { FastifyInstance } from "fastify";
 import { pool } from "../db";
 import { ticketExt } from "../lib/ticketImage";
+import { getEmailSettings } from "../lib/settings";
 
 export async function publicRoutes(app: FastifyInstance) {
+  // Config pública para la web (ej. el WhatsApp, editable desde el admin).
+  app.get("/api/public-config", async () => {
+    const s = await getEmailSettings();
+    return { whatsapp_url: s.whatsapp_url };
+  });
+
   app.get("/api/tickets", async (req, reply) => {
     const email = String((req.query as any)?.email ?? "")
       .toLowerCase()
