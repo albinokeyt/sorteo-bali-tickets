@@ -77,14 +77,14 @@ export default function Index() {
             ← Buscar otro correo
           </button>
           <div className="card" style={{ marginTop: 16 }}>
-            <h2>Tienes {tickets.length} ticket(s)</h2>
-            <p className="muted">Correo: {email}</p>
             {link && (
               <a className="btn gold" href={link} target="_blank" rel="noopener noreferrer"
-                 style={{ marginTop: 4, marginBottom: 4 }}>
-                🔑 Accede a tus productos
+                 style={{ fontSize: 17, padding: "16px 20px", marginBottom: 18 }}>
+                🔑 Accede a tus productos aquí
               </a>
             )}
+            <h2>Tienes {tickets.length} ticket(s)</h2>
+            <p className="muted">Correo: {email}</p>
             <div className="grid" style={{ marginTop: 16 }}>
               {tickets.map((t) => (
                 <div className="ticket" key={t.ticket_number}>
