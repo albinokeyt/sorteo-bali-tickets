@@ -141,7 +141,7 @@ export const DEFAULT_EMAIL = {
       <div class="notice-icon">⚠️</div>
       <div>
         <div class="notice-title">Importante</div>
-        <p class="notice-text">Guarda este email. Cada producto que compres incluye tickets para el sorteo. Cuantos más tengas, más posibilidades. El ganador se anunciará el <strong>2 de julio de 2026</strong> ante notario.</p>
+        <p class="notice-text">Guarda este email. Cada producto que compres incluye tickets para el sorteo. Cuantos más tengas, más posibilidades. El ganador se anunciará el <strong>3 de julio de 2026</strong> ante notario.</p>
       </div>
     </div>
   </div>
