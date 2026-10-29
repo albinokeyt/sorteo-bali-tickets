@@ -8,6 +8,7 @@ import { config } from "../config";
 import { createPurchaseWithTickets } from "../lib/tickets";
 import { safeEqual } from "../lib/ticketImage";
 import { enqueueSend } from "../queue";
+import { query, tx } from "../db";
 
 // Lee un campo del payload soportando rutas con punto: "contact.email".
 function pick(obj: any, path: string): unknown {
@@ -159,5 +160,58 @@ export async function webhookRoutes(app: FastifyInstance) {
       purchaseId: result.purchaseId,
       tickets: result.ticketNumbers,
     });
+  });
+
+  // Cambio de correo del comprador (lo llama GHL cuando la persona corrige su email por WhatsApp).
+  // NO crea tickets: pasa sus compras y tickets del correo viejo al nuevo y, si se pide,
+  // reenvía el email de tickets a la dirección nueva.
+  // customData: old_email (correo anterior), new_email (correo nuevo), resend ("true" | "false").
+  app.post("/webhook/ghl/email-change", async (req, reply) => {
+    const token = String(
+      (req.headers["x-webhook-token"] as string) || (req.query as any)?.token || ""
+    );
+    if (!token || !safeEqual(token, config.webhook.secret)) {
+      return reply.code(401).send({ error: "token inválido" });
+    }
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const oldEmail = asString(pick(body, "customData.old_email") ?? pick(body, "old_email")).toLowerCase();
+    const newEmail = asString(pick(body, "customData.new_email") ?? pick(body, "new_email")).toLowerCase();
+    const resend = /^(1|true|si|sí|yes)$/i.test(asString(pick(body, "customData.resend") ?? pick(body, "resend")));
+    const valid = (e: string) => !!e && e.includes("@") && e.length <= MAX_EMAIL && !/\s/.test(e);
+    if (!valid(oldEmail) || !valid(newEmail)) {
+      req.log.warn({ old: maskEmail(oldEmail), new: maskEmail(newEmail) }, "cambio de email rechazado: correo inválido");
+      return reply.code(400).send({ error: "old_email y new_email válidos requeridos" });
+    }
+    if (oldEmail === newEmail) return reply.code(200).send({ ok: true, changed: 0, same: true });
+
+    let purchaseIds: string[] = [];
+    let ticketsChanged = 0;
+    try {
+      await tx(async (c) => {
+        const p = await c.query<{ id: string }>(
+          "UPDATE purchases SET email = $2 WHERE lower(email) = $1 RETURNING id",
+          [oldEmail, newEmail]
+        );
+        purchaseIds = p.rows.map((r) => r.id);
+        const t = await c.query("UPDATE tickets SET email = $2 WHERE lower(email) = $1", [oldEmail, newEmail]);
+        ticketsChanged = t.rowCount ?? 0;
+      });
+    } catch (err: any) {
+      req.log.error({ err }, "error cambiando el email de los tickets");
+      return reply.code(500).send({ error: "error interno" });
+    }
+
+    let requeued = 0;
+    if (resend && purchaseIds.length) {
+      await query("UPDATE purchases SET email_status = 'pending' WHERE id = ANY($1::uuid[])", [purchaseIds]).catch(() => {});
+      for (const id of purchaseIds) {
+        try { await enqueueWithTimeout(id); requeued++; } catch { /* lo recoge el barrido del worker */ }
+      }
+    }
+    req.log.info(
+      { old: maskEmail(oldEmail), new: maskEmail(newEmail), purchases: purchaseIds.length, tickets: ticketsChanged, requeued },
+      "email del comprador cambiado (tickets reasignados al correo nuevo)"
+    );
+    return reply.code(200).send({ ok: true, purchases: purchaseIds.length, tickets: ticketsChanged, requeued });
   });
 }
