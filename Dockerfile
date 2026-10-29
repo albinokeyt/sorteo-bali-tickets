@@ -1,8 +1,8 @@
 # ---------- Stage 1: build del frontend (Vite/React) ----------
 FROM node:20-bookworm-slim AS frontend
 WORKDIR /web
-COPY frontend/package.json ./
-RUN npm install
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
 COPY frontend/ ./
 RUN npm run build   # genera /web/dist
 
@@ -14,8 +14,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY backend/package.json ./
-RUN npm install --omit=dev
+# Versiones exactas del lockfile: un deploy no puede traer una versión nueva rota.
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci --omit=dev
 COPY backend/tsconfig.json ./
 COPY backend/src ./src
 
@@ -23,6 +24,8 @@ COPY backend/src ./src
 COPY --from=frontend /web/dist /app/public
 
 RUN mkdir -p /app/cache /app/assets
-ENV NODE_ENV=production STATIC_DIR=/app/public
+# UV_THREADPOOL_SIZE: sharp, lecturas de disco y DNS comparten este pool
+# (por defecto 4); con más hilos el render no bloquea servir la caché.
+ENV NODE_ENV=production STATIC_DIR=/app/public UV_THREADPOOL_SIZE=16
 EXPOSE 3000
 CMD ["node", "--import", "tsx", "src/server.ts"]

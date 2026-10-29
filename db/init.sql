@@ -67,6 +67,9 @@ CREATE INDEX IF NOT EXISTS idx_tickets_email   ON tickets (lower(email));
 CREATE INDEX IF NOT EXISTS idx_tickets_raffle  ON tickets (raffle_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_purchase ON tickets (purchase_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_email ON purchases (lower(email));
+-- (la API también los crea al arrancar si la BD ya existía)
+CREATE INDEX IF NOT EXISTS idx_tickets_seq ON tickets (ticket_sequential_number);
+CREATE INDEX IF NOT EXISTS idx_purchases_status_created ON purchases (email_status, created_at);
 
 -- --- Reserva atómica de números -----------------------------
 -- Reserva un bloque de N números para un sorteo de forma segura

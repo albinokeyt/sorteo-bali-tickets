@@ -17,6 +17,7 @@ export type CreatePurchaseResult = {
   purchaseId: string;
   duplicate: boolean; // true si esa compra ya existía (idempotencia)
   ticketNumbers: number[];
+  emailStatus: string; // estado del email de la compra (pending | sent | failed)
 };
 
 function ticketCode(seq: number): string {
@@ -59,8 +60,8 @@ export async function createPurchaseWithTickets(
 
     if (ins.rowCount === 0) {
       // Compra duplicada: recuperamos la existente y sus números.
-      const existing = await client.query<{ id: string }>(
-        "SELECT id FROM purchases WHERE raffle_id = $1 AND external_order_id = $2",
+      const existing = await client.query<{ id: string; email_status: string }>(
+        "SELECT id, email_status FROM purchases WHERE raffle_id = $1 AND external_order_id = $2",
         [raffleId, input.externalOrderId]
       );
       const pid = existing.rows[0].id;
@@ -72,6 +73,7 @@ export async function createPurchaseWithTickets(
         purchaseId: pid,
         duplicate: true,
         ticketNumbers: nums.rows.map((r) => Number(r.ticket_sequential_number)),
+        emailStatus: existing.rows[0].email_status,
       };
     }
 
@@ -84,34 +86,23 @@ export async function createPurchaseWithTickets(
     );
     const first = Number(reserve.rows[0].reserve_ticket_numbers);
 
+    // Inserción en bloque con arrays: 6 parámetros fijos sea cual sea N
+    // (con VALUES (...),(...) una compra de >10.900 tickets superaba el
+    // límite de 65.535 parámetros de Postgres).
     const numbers: number[] = [];
-    const values: string[] = [];
-    const params: any[] = [];
-    let p = 0;
-    for (let i = 0; i < input.quantity; i++) {
-      const seq = first + i;
-      numbers.push(seq);
-      values.push(
-        `($${++p}, $${++p}, $${++p}, $${++p}, $${++p}, $${++p})`
-      );
-      params.push(
-        raffleId,
-        purchaseId,
-        ticketCode(seq),
-        seq,
-        input.email.toLowerCase().trim(),
-        input.name.trim()
-      );
-    }
+    for (let i = 0; i < input.quantity; i++) numbers.push(first + i);
+    const codes = numbers.map(ticketCode);
 
     await client.query(
       `INSERT INTO tickets
          (raffle_id, purchase_id, ticket_number, ticket_sequential_number, email, name)
-       VALUES ${values.join(", ")}`,
-      params
+       SELECT $1::uuid, $2::uuid, u.code, u.seq, $5::text, $6::text
+         FROM unnest($3::text[], $4::bigint[]) WITH ORDINALITY AS u(code, seq, ord)
+        ORDER BY u.ord`,
+      [raffleId, purchaseId, codes, numbers, input.email.toLowerCase().trim(), input.name.trim()]
     );
 
-    return { purchaseId, duplicate: false, ticketNumbers: numbers };
+    return { purchaseId, duplicate: false, ticketNumbers: numbers, emailStatus: "pending" };
   });
 }
 
@@ -126,7 +117,7 @@ export async function getPurchaseForEmail(purchaseId: string) {
   );
   if (p.rowCount === 0) return null;
   const tickets = await pool.query(
-    `SELECT id, ticket_number, ticket_sequential_number
+    `SELECT id, ticket_number, ticket_sequential_number, name, email
        FROM tickets WHERE purchase_id = $1 AND deleted_at IS NULL
       ORDER BY ticket_sequential_number`,
     [purchaseId]
@@ -137,6 +128,8 @@ export async function getPurchaseForEmail(purchaseId: string) {
       id: t.id,
       code: t.ticket_number,
       number: Number(t.ticket_sequential_number),
+      name: t.name as string,
+      email: t.email as string,
     })),
   };
 }

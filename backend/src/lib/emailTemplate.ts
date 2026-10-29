@@ -1,7 +1,7 @@
 // Renderiza la plantilla de email (editable) sustituyendo las variables
 // {{...}} por los datos reales de la compra.
 import type { EmailSettings } from "./settings";
-import { ticketExt } from "./ticketImage";
+import { demoImagePath, ticketImagePath } from "./ticketImage";
 import { config } from "../config";
 
 export type EmailTicket = { number: number; code: string };
@@ -13,7 +13,25 @@ export type RenderVars = {
   product?: string | null;
   linkAcceso?: string | null;
   tickets: EmailTicket[];
+  // true = email de prueba del panel: imágenes de ejemplo, sin datos reales.
+  demo?: boolean;
 };
+
+// Escapa texto que viene del comprador/GHL antes de meterlo en el HTML.
+function escHtml(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Para URLs dentro de href="": solo se neutralizan comillas y < > (el enlace
+// queda igual).
+function escAttrUrl(s: string): string {
+  return String(s ?? "").replace(/"/g, "%22").replace(/</g, "%3C").replace(/>/g, "%3E");
+}
 
 function substitute(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, k) =>
@@ -37,6 +55,8 @@ function ctaRow(linkAcceso: string, ticketsUrl: string, whatsapp: string): strin
 // Si hay más tickets que el límite, muestra un aviso con enlace a la web.
 function ticketsHtml(
   tickets: EmailTicket[],
+  email: string,
+  demo: boolean,
   base: string,
   linkAcceso: string,
   ticketsUrl: string,
@@ -50,7 +70,7 @@ function ticketsHtml(
   const imgs = shown
     .map(
       (t) =>
-        `<img src="${base}/t/${t.number}.${ticketExt}" width="${w}" alt="Ticket ${t.number}" style="display:block;width:100%;max-width:${w}px;margin:8px auto;border-radius:8px;" />`
+        `<img src="${base}${(demo ? demoImagePath(t.number) : ticketImagePath(t.number, email)).replace(/&/g, "&amp;")}" width="${w}" alt="Ticket ${t.number}" style="display:block;width:100%;max-width:${w}px;margin:8px auto;border-radius:8px;" />`
     )
     .join("\n");
 
@@ -67,21 +87,22 @@ function ticketsHtml(
 function buildVars(s: EmailSettings, v: RenderVars, base: string): Record<string, string> {
   const first = v.tickets[0];
   const ticketsUrl = `${base}/?email=${encodeURIComponent(v.email)}`;
-  const linkAcceso = v.linkAcceso || ticketsUrl;
+  const linkAcceso = escAttrUrl(v.linkAcceso || ticketsUrl);
+  const name = escHtml(v.name);
   return {
-    name: v.name,
-    email: v.email,
+    name,
+    email: escHtml(v.email),
     count: String(v.tickets.length),
-    raffle_name: v.raffleName,
-    product: v.product || v.raffleName,
+    raffle_name: escHtml(v.raffleName),
+    product: escHtml(v.product || v.raffleName),
     confirmation_id: first ? first.code : "",
     ticket_numbers: v.tickets.map((t) => `#${t.number}`).join(", "),
     link_acceso: linkAcceso,
     whatsapp_url: s.whatsapp_url,
     tickets_url: ticketsUrl,
-    tickets_html: ticketsHtml(v.tickets, base, linkAcceso, ticketsUrl, s.whatsapp_url),
+    tickets_html: ticketsHtml(v.tickets, v.email, !!v.demo, base, linkAcceso, ticketsUrl, s.whatsapp_url),
     preheader: substitute(s.preheader, {
-      name: v.name,
+      name,
       count: String(v.tickets.length),
     }),
   };

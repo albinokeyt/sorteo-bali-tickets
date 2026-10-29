@@ -28,6 +28,7 @@ export async function adminRoutes(app: FastifyInstance) {
           max: 8,
           timeWindow: "1 minute",
           errorResponseBuilder: () => ({
+            statusCode: 429,
             error: "Demasiados intentos. Espera 1 minuto e inténtalo de nuevo.",
           }),
         },
@@ -85,8 +86,8 @@ export async function adminRoutes(app: FastifyInstance) {
   // --- Listado / búsqueda de tickets (paginado) ---
   app.get("/api/admin/tickets", async (req) => {
     const q = String((req.query as any)?.q ?? "").toLowerCase().trim();
-    const limit = Math.min(200, Number((req.query as any)?.limit ?? 100));
-    const offset = Math.max(0, Number((req.query as any)?.offset ?? 0));
+    const limit = Math.min(200, Math.max(1, Number((req.query as any)?.limit ?? 100) || 100));
+    const offset = Math.max(0, Number((req.query as any)?.offset ?? 0) || 0);
     const where = q ? `WHERE lower(t.email) LIKE $1 OR lower(t.name) LIKE $1` : "";
     const params = q ? [`%${q}%`, limit, offset] : [limit, offset];
     const { rows } = await pool.query(
@@ -140,8 +141,8 @@ export async function adminRoutes(app: FastifyInstance) {
   // --- Compras con sus tickets (vista desglosada por compra) ---
   app.get("/api/admin/purchases", async (req) => {
     const q = String((req.query as any)?.q ?? "").toLowerCase().trim();
-    const limit = Math.min(200, Number((req.query as any)?.limit ?? 100));
-    const offset = Math.max(0, Number((req.query as any)?.offset ?? 0));
+    const limit = Math.min(200, Math.max(1, Number((req.query as any)?.limit ?? 100) || 100));
+    const offset = Math.max(0, Number((req.query as any)?.offset ?? 0) || 0);
     const where = q
       ? `WHERE lower(p.email) LIKE $1 OR lower(p.name) LIKE $1 OR lower(p.external_order_id) LIKE $1`
       : "";
@@ -236,9 +237,12 @@ export async function adminRoutes(app: FastifyInstance) {
     const b = (req.body ?? {}) as any;
     const email = String(b.email ?? "").trim();
     const name = String(b.name ?? "").trim() || email.split("@")[0];
-    const quantity = Math.max(1, Math.floor(Number(b.quantity ?? 1)));
+    const quantity = Math.max(1, Math.floor(Number(b.quantity ?? 1)) || 1);
     const send = b.send !== false; // por defecto manda el email
     if (!email.includes("@")) return reply.code(400).send({ error: "email inválido" });
+    if (quantity > config.admin.maxQty) {
+      return reply.code(400).send({ error: `máximo ${config.admin.maxQty} tickets por compra (ADMIN_MAX_QTY)` });
+    }
 
     const result = await createPurchaseWithTickets({
       raffleSlug: b.raffle || config.webhook.defaultRaffleSlug,
@@ -265,8 +269,9 @@ export async function adminRoutes(app: FastifyInstance) {
     const { rows } = await pool.query(
       "SELECT id FROM purchases WHERE email_status IN ('failed','pending')"
     );
-    for (const r of rows) await enqueueSend(r.id);
-    return { ok: true, requeued: rows.length };
+    let requeued = 0;
+    for (const r of rows) if (await enqueueSend(r.id)) requeued++;
+    return { ok: true, requeued, total: rows.length };
   });
 
   // --- Ajustes del email (editar HTML, remitente, asunto, preview) ---
@@ -295,12 +300,13 @@ export async function adminRoutes(app: FastifyInstance) {
       name: "Nombre de Prueba",
       email: to,
       raffleName: "Viaje a Bali · Jorge Darek",
-      product: "Guía Definitiva de Entrenamiento de Fuerza",
+      product: "La Guía Definitiva para una Vida Libre de Tóxicos",
       linkAcceso: `${base}/?email=${encodeURIComponent(to)}`,
       tickets: [
         { number: 101, code: "TK-000101" },
         { number: 102, code: "TK-000102" },
       ],
+      demo: true,
     };
     try {
       await sendEmail({

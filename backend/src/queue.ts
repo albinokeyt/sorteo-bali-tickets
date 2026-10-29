@@ -34,12 +34,35 @@ export const sendQueue = new Queue<SendTicketsJob>(QUEUE_NAME, {
   },
 });
 
-export async function enqueueSend(purchaseId: string) {
+// Igual que en la conexión: un error de Redis no debe tumbar el proceso.
+sendQueue.on("error", (err: Error) => {
+  console.warn(`[queue] error de Redis (reintentando): ${err.message}`);
+});
+
+// Encola el email de una compra. Devuelve true si se añadió un trabajo nuevo.
+//
+// OJO (BullMQ): add() con un jobId que YA existe no hace nada, aunque ese
+// trabajo esté terminado (completed) o fallido (failed) — se conservan miles
+// para auditar. Por eso "Reenviar" y "Reenviar fallidos" no hacían nada:
+// si el trabajo anterior ya terminó, se borra y se vuelve a crear. Si sigue
+// en cola o en curso, no se duplica.
+export async function enqueueSend(purchaseId: string): Promise<boolean> {
   // jobId estable (sin ":" — BullMQ no lo permite) para que reintentos
   // o duplicados no creen 2 trabajos para la misma compra.
-  await sendQueue.add(
-    "send",
-    { purchaseId },
-    { jobId: `send-${purchaseId}` }
-  );
+  const jobId = `send-${purchaseId}`;
+  const existing = await sendQueue.getJob(jobId);
+  if (existing) {
+    const state = await existing.getState();
+    if (state === "completed" || state === "failed") {
+      try {
+        await existing.remove();
+      } catch {
+        /* bloqueado por otro proceso: el add de abajo no hará nada */
+      }
+    } else if (state !== "unknown") {
+      return false; // waiting / active / delayed…: ya está en marcha
+    }
+  }
+  const job = await sendQueue.add("send", { purchaseId }, { jobId });
+  return !!job;
 }

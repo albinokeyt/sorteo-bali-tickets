@@ -24,7 +24,14 @@ x-app-env: &app-env
   EMAIL_PREHEADER: ${EMAIL_PREHEADER:-Tus tickets del sorteo están listos.}
   WHATSAPP_URL: ${WHATSAPP_URL:-https://wa.me/34919930715}
   EMAIL_RATE_PER_SEC: ${EMAIL_RATE_PER_SEC:-10}
-  EMAIL_MAX_ATTEMPTS: ${EMAIL_MAX_ATTEMPTS:-4}
+  EMAIL_MAX_ATTEMPTS: ${EMAIL_MAX_ATTEMPTS:-8}   # 8 intentos ≈ 10 min de reintentos con backoff
+  BREVO_TIMEOUT_MS: ${BREVO_TIMEOUT_MS:-20000}
+  EMAIL_SWEEP_MINUTES: ${EMAIL_SWEEP_MINUTES:-5}   # re-encola 'pending' sin trabajo (0 = off)
+  WEBHOOK_MAX_QTY: ${WEBHOOK_MAX_QTY:-1000}        # tope de tickets por compra del webhook
+  PUBLIC_RATE_LIMIT_PER_MIN: ${PUBLIC_RATE_LIMIT_PER_MIN:-60}   # búsquedas /api/tickets por IP y minuto
+  TICKET_IMG_REQUIRE_KEY: ${TICKET_IMG_REQUIRE_KEY:-true}       # /t/N.jpg exige la firma ?k=
+  TICKET_RENDER_CONCURRENCY: ${TICKET_RENDER_CONCURRENCY:-}     # vacío = según CPUs (2..8)
+  TICKET_PRERENDER: ${TICKET_PRERENDER:-true}                   # el worker pre-genera las imágenes del email
   EMAIL_DRY_RUN: ${EMAIL_DRY_RUN:-false}   # true = modo simulación (no envía de verdad)
   WEBHOOK_SECRET: ${WEBHOOK_SECRET:-cambia-este-secreto}
   ADMIN_PASSWORD: ${ADMIN_PASSWORD:-cambia-esta-clave-admin}
@@ -76,6 +83,7 @@ services:
     restart: unless-stopped
     command: ["node", "--import", "tsx", "src/server.ts"]
     environment: *app-env
+    stop_grace_period: 30s   # deja terminar las peticiones en curso al redesplegar
     depends_on:
       db:
         condition: service_healthy
@@ -104,6 +112,7 @@ services:
     restart: unless-stopped
     command: ["node", "--import", "tsx", "src/worker.ts"]
     environment: *app-env
+    stop_grace_period: 30s   # deja terminar los envíos en curso al redesplegar
     depends_on:
       db:
         condition: service_healthy
